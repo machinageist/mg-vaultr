@@ -5,6 +5,7 @@ use std::process::ExitCode;
 use clap::{Parser, Subcommand};
 use mg_vault_core::{
     Error, IndexStatus, MarkdownIndex, SourceFingerprint, Vault, VaultRegistry, XdgPaths,
+    export_snapshot,
 };
 use mg_vault_index::{Freshness, IndexMetadata, PersistentIndexStore, StoreError, database_path};
 use serde::Serialize;
@@ -50,6 +51,15 @@ enum Command {
     Search {
         query: String,
     },
+    Interop {
+        #[command(subcommand)]
+        command: InteropCommand,
+    },
+}
+
+#[derive(Debug, Subcommand)]
+enum InteropCommand {
+    Export,
 }
 
 #[derive(Debug, Subcommand)]
@@ -143,6 +153,20 @@ fn run(cli: &Cli) -> Result<Output, Error> {
                 &vault,
                 &database_path(&paths.cache_dir().join("indexes"), &vault),
             ))
+        }
+        Command::Interop { command } => {
+            let root = registry.resolve(cli.vault.as_deref())?;
+            let vault = Vault::open(&root)?;
+            match command {
+                InteropCommand::Export => {
+                    let data = export_snapshot(&vault)?;
+                    Ok(Output {
+                        human: serde_json::to_string_pretty(&data)?,
+                        data,
+                        raw_human: true,
+                    })
+                }
+            }
         }
     }
 }

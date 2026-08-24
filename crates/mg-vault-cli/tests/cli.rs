@@ -131,6 +131,70 @@ fn index_commands_report_no_selected_vault() {
 }
 
 #[test]
+fn interop_export_is_a_stable_snapshot_with_links_and_diagnostics() {
+    let home = tempfile::tempdir().unwrap();
+    let vault = home.path().join("vault");
+    fs::create_dir(&vault).unwrap();
+    register(&home, &vault);
+    fs::write(vault.join("a.md"), "# Alpha\n[[b]] [[missing]]\n").unwrap();
+    fs::write(vault.join("b.md"), "Beta\n").unwrap();
+    fs::create_dir(vault.join("private")).unwrap();
+    fs::write(vault.join("private/secret.md"), "do not export").unwrap();
+
+    let first = command(&home)
+        .args(["--json", "interop", "export"])
+        .output()
+        .unwrap();
+    assert!(first.status.success());
+    let second = command(&home)
+        .args(["--json", "interop", "export"])
+        .output()
+        .unwrap();
+    assert!(second.status.success());
+    assert_eq!(first.stdout, second.stdout);
+
+    let value: Value = serde_json::from_slice(&first.stdout).unwrap();
+    assert_eq!(value["data"]["interop_schema"], "mg.interop/1");
+    assert_eq!(value["data"]["source_revision"].as_str().unwrap().len(), 71);
+    assert_eq!(value["data"]["records"].as_array().unwrap().len(), 2);
+    assert!(
+        value["data"]["records"][0]["global_id"]
+            .as_str()
+            .unwrap()
+            .starts_with("mg-vault:vault:sha256:")
+    );
+    assert!(value["data"]["vault_namespace"].is_string());
+    assert!(
+        value["data"]["records"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .all(|record| !record["payload"]["text"]
+                .as_str()
+                .unwrap()
+                .contains("do not export"))
+    );
+    assert!(
+        value["data"]["links"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|link| link["resolved"] == true)
+    );
+    assert!(
+        value["data"]["links"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|link| link["resolved"] == false)
+    );
+    assert_eq!(
+        value["data"]["diagnostics"][0]["code"],
+        "unresolved_wikilink"
+    );
+}
+
+#[test]
 fn index_search_can_target_a_named_vault() {
     let home = tempfile::tempdir().unwrap();
     let first = home.path().join("first");

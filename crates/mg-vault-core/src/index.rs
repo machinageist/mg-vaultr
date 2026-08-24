@@ -183,7 +183,7 @@ fn collect_markdown_paths(
     }
 }
 
-fn read_indexed_note(root: &Path, path: &Path) -> Result<IndexedNote, String> {
+pub(crate) fn read_indexed_note(root: &Path, path: &Path) -> Result<IndexedNote, String> {
     let relative = path
         .strip_prefix(root)
         .map_err(|error| error.to_string())?
@@ -227,13 +227,8 @@ fn read_source_bytes(root: &Path, relative: &Path) -> Result<Vec<u8>, String> {
 
 #[cfg(not(target_os = "linux"))]
 fn read_source_bytes(root: &Path, relative: &Path) -> Result<Vec<u8>, String> {
-    let path = root.join(relative);
-    let canonical = fs::canonicalize(&path).map_err(|error| error.to_string())?;
-    let canonical_root = fs::canonicalize(root).map_err(|error| error.to_string())?;
-    if !canonical.starts_with(&canonical_root) {
-        return Err("source path escapes the vault".to_owned());
-    }
-    fs::read(canonical).map_err(|error| error.to_string())
+    let _ = (root, relative);
+    Err("safe source opening is unsupported on this platform".to_owned())
 }
 
 fn title_for(text: &str, path: &Path) -> String {
