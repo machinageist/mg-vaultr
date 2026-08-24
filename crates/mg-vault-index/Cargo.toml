@@ -1,15 +1,15 @@
 [package]
-name = "mg-vault"
+name = "mg-vault-index"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
 [dependencies]
-clap.workspace = true
 mg-vault-core = { path = "../mg-vault-core" }
-mg-vault-index = { path = "../mg-vault-index" }
+rusqlite.workspace = true
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
 tempfile = "3"

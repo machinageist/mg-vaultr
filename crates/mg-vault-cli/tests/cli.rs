@@ -90,11 +90,11 @@ fn index_rebuild_and_search_are_json_sorted_and_diagnostic() {
     assert!(status.status.success());
     let status: Value = serde_json::from_slice(&status.stdout).unwrap();
     assert_eq!(status["data"]["status"], "degraded");
-    assert_eq!(status["data"]["generation"], 1);
-    assert_eq!(status["data"]["note_count"], 2);
+    assert!(status["data"]["generation"].is_null());
+    assert_eq!(status["data"]["note_count"], 0);
     assert_eq!(status["data"]["degraded"], true);
-    assert_eq!(status["data"]["freshness"], "rebuild_snapshot");
-    assert_eq!(status["data"]["persistence"], "none");
+    assert_eq!(status["data"]["freshness"], "complete_rebuild_snapshot");
+    assert_eq!(status["data"]["persistence"], "sqlite");
     assert_eq!(status["data"]["derived_from"], "authoritative_vault_files");
     assert_eq!(status["data"]["diagnostics"][0]["path"], "bad.md");
 
@@ -112,7 +112,7 @@ fn index_rebuild_and_search_are_json_sorted_and_diagnostic() {
     assert!(human.status.success());
     let human = String::from_utf8(human.stdout).unwrap();
     assert!(human.contains("source=authoritative_vault_files"));
-    assert!(human.contains("freshness=rebuild_snapshot"));
+    assert!(human.contains("freshness=direct_rebuild_snapshot"));
     assert!(human.contains("persistence=none"));
     assert!(human.contains("degraded: bad.md:"));
 }
@@ -150,4 +150,54 @@ fn index_search_can_target_a_named_vault() {
     let value: Value = serde_json::from_slice(&output.stdout).unwrap();
     assert_eq!(value["data"]["results"][0]["path"], "second.md");
     assert_eq!(value["data"]["results"].as_array().unwrap().len(), 1);
+}
+
+#[test]
+fn search_surfaces_persistent_storage_failure_during_direct_fallback() {
+    let home = tempfile::tempdir().unwrap();
+    let vault = home.path().join("vault");
+    fs::create_dir(&vault).unwrap();
+    register(&home, &vault);
+    fs::write(vault.join("note.md"), "# Note\nneedle\n").unwrap();
+    fs::write(home.path().join("cache"), "not a directory").unwrap();
+
+    let output = command(&home)
+        .args(["--json", "search", "needle"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["data"]["status"], "degraded");
+    assert_eq!(value["data"]["degraded"], true);
+    assert_eq!(value["data"]["persistence"], "none");
+    assert!(value["data"]["storage_error"].is_string());
+    assert_eq!(value["data"]["results"][0]["path"], "note.md");
+
+    for index_command in ["status", "rebuild"] {
+        let output = command(&home)
+            .args(["--json", "index", index_command])
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_eq!(value["data"]["status"], "degraded");
+        assert_eq!(value["data"]["degraded"], true);
+        assert_eq!(value["data"]["persistence"], "none");
+        assert!(value["data"]["storage_error"].is_string());
+
+        let human = command(&home)
+            .args(["index", index_command])
+            .output()
+            .unwrap();
+        assert!(human.status.success());
+        let human = String::from_utf8(human.stdout).unwrap();
+        assert!(human.contains("status=degraded"));
+        assert!(human.contains("degraded: .mg-vault/index.sqlite3:"));
+    }
+
+    let human = command(&home).args(["search", "needle"]).output().unwrap();
+    assert!(human.status.success());
+    let human = String::from_utf8(human.stdout).unwrap();
+    assert!(human.contains("status=degraded"));
+    assert!(human.contains("degraded: .mg-vault/index.sqlite3:"));
 }

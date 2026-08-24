@@ -6,6 +6,7 @@ use clap::{Parser, Subcommand};
 use mg_vault_core::{
     Error, IndexStatus, MarkdownIndex, SourceFingerprint, Vault, VaultRegistry, XdgPaths,
 };
+use mg_vault_index::{Freshness, IndexMetadata, PersistentIndexStore, StoreError, database_path};
 use serde::Serialize;
 use serde_json::{Value, json};
 
@@ -127,22 +128,45 @@ fn run(cli: &Cli) -> Result<Output, Error> {
         }
         Command::Index { command } => {
             let root = registry.resolve(cli.vault.as_deref())?;
-            Ok(run_index(command, &Vault::open(&root)?))
+            let vault = Vault::open(&root)?;
+            Ok(run_index(
+                command,
+                &vault,
+                &database_path(&paths.cache_dir().join("indexes"), &vault),
+            ))
         }
         Command::Search { query } => {
             let root = registry.resolve(cli.vault.as_deref())?;
-            Ok(run_search(query, &Vault::open(&root)?))
+            let vault = Vault::open(&root)?;
+            Ok(run_search(
+                query,
+                &vault,
+                &database_path(&paths.cache_dir().join("indexes"), &vault),
+            ))
         }
     }
 }
 
-fn run_index(command: &IndexCommand, vault: &Vault) -> Output {
-    let mut index = MarkdownIndex::new();
-    index.rebuild(vault);
-    let status = index_status(&index, vault);
-    let action = match command {
-        IndexCommand::Rebuild => "rebuilt",
-        IndexCommand::Status => "status (rebuild snapshot)",
+fn run_index(command: &IndexCommand, vault: &Vault, database: &std::path::Path) -> Output {
+    let persistent = PersistentIndexStore::open(database).and_then(|mut store| match command {
+        IndexCommand::Rebuild => store.rebuild(vault),
+        IndexCommand::Status => store.metadata(),
+    });
+    let (action, status) = match persistent {
+        Ok(metadata) => {
+            let action = match command {
+                IndexCommand::Rebuild => "rebuilt",
+                IndexCommand::Status => "status",
+            };
+            (action, persistent_index_status(&metadata))
+        }
+        Err(error) => {
+            let mut index = MarkdownIndex::new();
+            index.rebuild(vault);
+            let mut status = direct_index_status(&index, vault);
+            add_storage_failure(&mut status, &error.to_string());
+            ("direct fallback", status)
+        }
     };
     Output {
         human: format_index_human(action, &status),
@@ -151,7 +175,15 @@ fn run_index(command: &IndexCommand, vault: &Vault) -> Output {
     }
 }
 
-fn run_search(query: &str, vault: &Vault) -> Output {
+fn run_search(query: &str, vault: &Vault, database: &std::path::Path) -> Output {
+    match persistent_search(query, vault, database) {
+        Ok(Some(output)) => output,
+        Ok(None) => direct_search(query, vault, None),
+        Err(error) => direct_search(query, vault, Some(error.to_string())),
+    }
+}
+
+fn direct_search(query: &str, vault: &Vault, storage_error: Option<String>) -> Output {
     let mut index = MarkdownIndex::new();
     index.rebuild(vault);
     let matches = index.search(query);
@@ -165,16 +197,84 @@ fn run_search(query: &str, vault: &Vault) -> Output {
             })
         })
         .collect::<Vec<_>>();
-    let status = index_status(&index, vault);
-    let mut data = status;
+    let mut status = direct_index_status(&index, vault);
+    if let Some(error) = storage_error {
+        add_storage_failure(&mut status, &error);
+    }
+    search_output(
+        query,
+        &matches
+            .iter()
+            .map(|note| (note.path.as_path(), note.title.as_str()))
+            .collect::<Vec<_>>(),
+        &results,
+        status,
+    )
+}
+
+fn persistent_search(
+    query: &str,
+    vault: &Vault,
+    database: &std::path::Path,
+) -> Result<Option<Output>, StoreError> {
+    let mut store = PersistentIndexStore::open(database)?;
+    let metadata = store.rebuild(vault)?;
+    if metadata.freshness != Freshness::Current {
+        return Ok(None);
+    }
+    let snapshot = store.search_current(query)?;
+    let results = snapshot
+        .notes
+        .iter()
+        .map(|note| {
+            json!({
+                "path": note.path,
+                "title": note.title,
+                "fingerprint": note.fingerprint,
+            })
+        })
+        .collect::<Vec<_>>();
+    let display = snapshot
+        .notes
+        .iter()
+        .map(|note| (note.path.as_path(), note.title.as_str()))
+        .collect::<Vec<_>>();
+    Ok(Some(search_output(
+        query,
+        &display,
+        &results,
+        persistent_index_status(&snapshot.metadata),
+    )))
+}
+
+fn add_storage_failure(status: &mut Value, error: &str) {
+    status["status"] = json!("degraded");
+    status["degraded"] = json!(true);
+    status["storage_error"] = json!(error);
+    let diagnostic_message = status["storage_error"].clone();
+    status["diagnostics"]
+        .as_array_mut()
+        .expect("direct index diagnostics are always an array")
+        .push(json!({
+            "path": ".mg-vault/index.sqlite3",
+            "message": diagnostic_message,
+        }));
+}
+
+fn search_output(
+    query: &str,
+    matches: &[(&std::path::Path, &str)],
+    results: &[Value],
+    mut data: Value,
+) -> Output {
     data["query"] = json!(query);
     data["results"] = json!(results);
     let mut lines = matches
         .iter()
-        .map(|note| format!("{}\t{}", note.path.display(), note.title))
+        .map(|(path, title)| format!("{}\t{title}", path.display()))
         .collect::<Vec<_>>();
     lines.push(format_index_human("search", &data));
-    if lines.len() == 1 {
+    if matches.is_empty() {
         lines.insert(0, format!("no matches for {query:?}"));
     }
     Output {
@@ -184,24 +284,24 @@ fn run_search(query: &str, vault: &Vault) -> Output {
     }
 }
 
-fn index_status(index: &MarkdownIndex, vault: &Vault) -> Value {
+fn direct_index_status(index: &MarkdownIndex, vault: &Vault) -> Value {
     match index.status() {
         IndexStatus::Empty => json!({
             "status": "empty", "generation": Value::Null, "note_count": 0,
             "degraded": false, "diagnostics": [],
-            "freshness": "rebuild_snapshot", "persistence": "none",
+            "freshness": "direct_rebuild_snapshot", "persistence": "none",
             "derived_from": "authoritative_vault_files",
         }),
         IndexStatus::Current { generation } => json!({
             "status": "current", "generation": generation, "note_count": index.notes().len(),
             "degraded": false, "diagnostics": [],
-            "freshness": "rebuild_snapshot", "persistence": "none",
+            "freshness": "direct_rebuild_snapshot", "persistence": "none",
             "derived_from": "authoritative_vault_files",
         }),
         IndexStatus::Degraded { generation, errors } => json!({
             "status": "degraded", "generation": generation, "note_count": index.notes().len(),
             "degraded": true,
-            "freshness": "rebuild_snapshot", "persistence": "none",
+            "freshness": "direct_rebuild_snapshot", "persistence": "none",
             "derived_from": "authoritative_vault_files",
             "diagnostics": errors.iter().map(|error| json!({
                 "path": error
@@ -214,14 +314,36 @@ fn index_status(index: &MarkdownIndex, vault: &Vault) -> Value {
     }
 }
 
+fn persistent_index_status(metadata: &IndexMetadata) -> Value {
+    json!({
+        "status": match metadata.freshness {
+            Freshness::Empty => "empty",
+            Freshness::Current => "current",
+            Freshness::Degraded => "degraded",
+        },
+        "generation": metadata.generation,
+        "note_count": metadata.note_count,
+        "degraded": metadata.freshness == Freshness::Degraded,
+        "diagnostics": metadata.diagnostics,
+        "freshness": "complete_rebuild_snapshot",
+        "persistence": "sqlite",
+        "schema_version": metadata.schema_version,
+        "parser_version": metadata.parser_version,
+        "completed_at_unix_ms": metadata.completed_at_unix_ms,
+        "derived_from": "authoritative_vault_files",
+    })
+}
+
 fn format_index_human(action: &str, status: &Value) -> String {
     let state = status["status"].as_str().unwrap_or("unknown");
     let generation = status["generation"]
         .as_u64()
         .map_or_else(|| "-".to_owned(), |value| value.to_string());
     let count = status["note_count"].as_u64().unwrap_or(0);
+    let freshness = status["freshness"].as_str().unwrap_or("unknown");
+    let persistence = status["persistence"].as_str().unwrap_or("unknown");
     let mut output = format!(
-        "index {action}: status={state} generation={generation} notes={count} source=authoritative_vault_files freshness=rebuild_snapshot persistence=none\n"
+        "index {action}: status={state} generation={generation} notes={count} source=authoritative_vault_files freshness={freshness} persistence={persistence}\n"
     );
     if let Some(diagnostics) = status["diagnostics"].as_array() {
         for diagnostic in diagnostics {
