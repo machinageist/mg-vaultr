@@ -1,6 +1,7 @@
 use std::ffi::OsStr;
 use std::fs::{self, OpenOptions};
 use std::io::Read;
+use std::ops::Range;
 use std::path::{Component, Path, PathBuf};
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -169,6 +170,62 @@ impl Vault {
         }
         replace_atomic(&destination, bytes)?;
         Ok(SourceFingerprint::of(bytes))
+    }
+
+    /// Replace exactly one UTF-8 byte span while preserving all other bytes.
+    ///
+    /// # Errors
+    ///
+    /// Returns an error for unsafe paths, stale fingerprints, invalid UTF-8,
+    /// non-character-boundary spans, out-of-bounds spans, or failed durable I/O.
+    pub fn edit_note_span(
+        &self,
+        relative: impl AsRef<Path>,
+        span: Range<usize>,
+        replacement: &[u8],
+        expected: &SourceFingerprint,
+    ) -> Result<SourceFingerprint> {
+        let relative = validate_note_path(relative.as_ref(), true)?;
+        let destination = self.existing_mutation_path(&relative)?;
+        let current = fs::read(&destination).map_err(|error| Error::io(&destination, error))?;
+        let actual = SourceFingerprint::of(&current);
+        if &actual != expected {
+            return Err(Error::Conflict {
+                expected: expected.to_string(),
+                actual: actual.to_string(),
+            });
+        }
+
+        let content =
+            std::str::from_utf8(&current).map_err(|_| Error::InvalidUtf8(relative.clone()))?;
+        std::str::from_utf8(replacement).map_err(|_| Error::InvalidUtf8(relative.clone()))?;
+        if span.start > span.end
+            || span.end > current.len()
+            || !content.is_char_boundary(span.start)
+            || !content.is_char_boundary(span.end)
+        {
+            return Err(Error::InvalidEditSpan {
+                start: span.start,
+                end: span.end,
+                len: current.len(),
+            });
+        }
+
+        let capacity = current
+            .len()
+            .checked_sub(span.end - span.start)
+            .and_then(|len| len.checked_add(replacement.len()))
+            .ok_or(Error::InvalidEditSpan {
+                start: span.start,
+                end: span.end,
+                len: current.len(),
+            })?;
+        let mut edited = Vec::with_capacity(capacity);
+        edited.extend_from_slice(&current[..span.start]);
+        edited.extend_from_slice(replacement);
+        edited.extend_from_slice(&current[span.end..]);
+        replace_atomic(&destination, &edited)?;
+        Ok(SourceFingerprint::of(&edited))
     }
 
     /// Move a note into recoverable vault-local trash.

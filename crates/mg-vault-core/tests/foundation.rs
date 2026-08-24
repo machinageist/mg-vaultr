@@ -110,6 +110,102 @@ fn atomic_write_changes_fingerprint_and_content() {
 }
 
 #[test]
+fn narrow_edit_preserves_all_bytes_outside_the_selected_span() {
+    let (_dir, vault) = vault();
+    let source = b"---\ntitle: Old\nunknown:  keep  spacing\n---\nBefore [[Target]] after\n";
+    let before = vault.create_note("a.md", source).unwrap();
+    let start = source
+        .windows(b"Old".len())
+        .position(|window| window == b"Old")
+        .unwrap();
+    let end = start + b"Old".len();
+
+    let after = vault
+        .edit_note_span("a.md", start..end, b"New title", &before)
+        .unwrap();
+
+    let expected =
+        b"---\ntitle: New title\nunknown:  keep  spacing\n---\nBefore [[Target]] after\n";
+    assert_eq!(fs::read(vault.root().join("a.md")).unwrap(), expected);
+    assert_eq!(after, SourceFingerprint::of(expected));
+}
+
+#[test]
+fn narrow_edit_rejects_invalid_utf8_boundaries_without_mutation() {
+    let (_dir, vault) = vault();
+    let source = "before café after".as_bytes();
+    let before = vault.create_note("a.md", source).unwrap();
+    let inside_multibyte_character = "before caf".len() + 1;
+
+    assert!(matches!(
+        vault.edit_note_span(
+            "a.md",
+            inside_multibyte_character..inside_multibyte_character + 1,
+            b"x",
+            &before,
+        ),
+        Err(Error::InvalidEditSpan { .. })
+    ));
+    assert_eq!(fs::read(vault.root().join("a.md")).unwrap(), source);
+}
+
+#[test]
+fn narrow_edit_rejects_reversed_and_out_of_bounds_spans_without_mutation() {
+    let (_dir, vault) = vault();
+    let source = b"unchanged";
+    let before = vault.create_note("a.md", source).unwrap();
+
+    let reversed_start = source.len() - 1;
+    let reversed_end = 3;
+    for span in [reversed_start..reversed_end, 0..source.len() + 1] {
+        assert!(matches!(
+            vault.edit_note_span("a.md", span, b"x", &before),
+            Err(Error::InvalidEditSpan { .. })
+        ));
+        assert_eq!(fs::read(vault.root().join("a.md")).unwrap(), source);
+    }
+}
+
+#[test]
+fn narrow_edit_rejects_invalid_existing_utf8_without_mutation() {
+    let (_dir, vault) = vault();
+    let source = b"before\xffafter";
+    let before = vault.create_note("a.md", source).unwrap();
+
+    assert!(matches!(
+        vault.edit_note_span("a.md", 0..1, b"x", &before),
+        Err(Error::InvalidUtf8(_))
+    ));
+    assert_eq!(fs::read(vault.root().join("a.md")).unwrap(), source);
+}
+
+#[test]
+fn narrow_edit_rejects_invalid_utf8_replacement_without_mutation() {
+    let (_dir, vault) = vault();
+    let source = b"unchanged";
+    let before = vault.create_note("a.md", source).unwrap();
+
+    assert!(matches!(
+        vault.edit_note_span("a.md", 0..1, b"\xff", &before),
+        Err(Error::InvalidUtf8(_))
+    ));
+    assert_eq!(fs::read(vault.root().join("a.md")).unwrap(), source);
+}
+
+#[test]
+fn narrow_edit_rejects_a_stale_fingerprint_without_mutation() {
+    let (_dir, vault) = vault();
+    let before = vault.create_note("a.md", b"original").unwrap();
+    fs::write(vault.root().join("a.md"), b"external").unwrap();
+
+    assert!(matches!(
+        vault.edit_note_span("a.md", 0..8, b"ours", &before),
+        Err(Error::Conflict { .. })
+    ));
+    assert_eq!(fs::read(vault.root().join("a.md")).unwrap(), b"external");
+}
+
+#[test]
 fn trash_restore_round_trip_and_collision_refusal() {
     let (_dir, vault) = vault();
     vault.create_note("folder/a.md", b"recover me").unwrap();

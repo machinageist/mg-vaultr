@@ -260,6 +260,7 @@ const fn error_code(error: &Error) -> &'static str {
         Error::UnknownVault(_) => "unknown_vault",
         Error::InvalidVaultName(_) => "invalid_vault_name",
         Error::InvalidUtf8(_) => "invalid_utf8",
+        Error::InvalidEditSpan { .. } => "invalid_edit_span",
         Error::InvalidTrashEntry(_) => "invalid_trash_entry",
         Error::Io { .. } => "io",
         Error::Json(_) => "json",

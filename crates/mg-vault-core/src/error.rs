@@ -17,6 +17,12 @@ pub enum Error {
     InvalidVaultName(String),
     #[error("invalid UTF-8 note content: {}", .0.display())]
     InvalidUtf8(PathBuf),
+    #[error("invalid edit span {start}..{end} for a {len}-byte note")]
+    InvalidEditSpan {
+        start: usize,
+        end: usize,
+        len: usize,
+    },
     #[error("invalid trash entry: {0}")]
     InvalidTrashEntry(String),
     #[error("I/O error at {}: {source}", path.display())]
