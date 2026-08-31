@@ -326,11 +326,24 @@ name = "mg-vault"
 version = "0.1.0"
 dependencies = [
  "clap",
+ "mg-vault-client",
  "mg-vault-core",
  "mg-vault-index",
+ "mg-vault-service",
  "serde",
  "serde_json",
  "tempfile",
+ "thiserror",
+]
+
+[[package]]
+name = "mg-vault-client"
+version = "0.1.0"
+dependencies = [
+ "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
 ]
 
 [[package]]
@@ -352,7 +365,20 @@ version = "0.1.0"
 dependencies = [
  "mg-vault-core",
  "rusqlite",
+ "rustix",
  "serde",
+ "serde_json",
+ "tempfile",
+ "thiserror",
+]
+
+[[package]]
+name = "mg-vault-service"
+version = "0.1.0"
+dependencies = [
+ "mg-vault-client",
+ "mg-vault-core",
+ "rustix",
  "serde_json",
  "tempfile",
  "thiserror",

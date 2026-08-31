@@ -1,4 +1,8 @@
 use std::fs;
+#[cfg(unix)]
+use std::os::unix::ffi::OsStringExt;
+#[cfg(unix)]
+use std::path::PathBuf;
 use std::process::Command;
 
 use serde_json::Value;
@@ -11,7 +15,8 @@ fn command(home: &TempDir) -> Command {
         .env("XDG_CONFIG_HOME", home.path().join("config"))
         .env("XDG_DATA_HOME", home.path().join("data"))
         .env("XDG_STATE_HOME", home.path().join("state"))
-        .env("XDG_CACHE_HOME", home.path().join("cache"));
+        .env("XDG_CACHE_HOME", home.path().join("cache"))
+        .env_remove("XDG_RUNTIME_DIR");
     command
 }
 
@@ -66,6 +71,29 @@ fn register_named(home: &TempDir, name: &str, vault: &std::path::Path) {
             .unwrap()
             .success()
     );
+}
+
+#[test]
+fn service_status_uses_versioned_ipc_and_cli_envelope() {
+    let home = tempfile::tempdir().unwrap();
+    let socket = home.path().join("state/mg-vault/runtime/indexd.sock");
+    let registry = home.path().join("config/mg-vault/vaults.json");
+    let server = mg_vault_service::Server::bind(&socket, &registry).unwrap();
+    let handle = std::thread::spawn(move || server.serve_one().unwrap());
+
+    let output = command(&home)
+        .args(["--json", "service", "status"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["version"], 1);
+    assert_eq!(value["ok"], true);
+    assert_eq!(value["data"]["service"], "available");
+    assert_eq!(value["data"]["protocol_version"], 1);
+    assert_eq!(value["data"]["service_version"], "0.1.0");
+    assert_eq!(value["data"]["transport"], "unix");
+    handle.join().unwrap();
 }
 
 #[test]
@@ -237,31 +265,130 @@ fn search_surfaces_persistent_storage_failure_during_direct_fallback() {
     assert!(value["data"]["storage_error"].is_string());
     assert_eq!(value["data"]["results"][0]["path"], "note.md");
 
-    for index_command in ["status", "rebuild"] {
-        let output = command(&home)
-            .args(["--json", "index", index_command])
-            .output()
-            .unwrap();
-        assert!(output.status.success());
-        let value: Value = serde_json::from_slice(&output.stdout).unwrap();
-        assert_eq!(value["data"]["status"], "degraded");
-        assert_eq!(value["data"]["degraded"], true);
-        assert_eq!(value["data"]["persistence"], "none");
-        assert!(value["data"]["storage_error"].is_string());
+    let output = command(&home)
+        .args(["--json", "index", "status"])
+        .output()
+        .unwrap();
+    assert!(output.status.success());
+    let value: Value = serde_json::from_slice(&output.stdout).unwrap();
+    assert_eq!(value["data"]["status"], "degraded");
+    assert_eq!(value["data"]["persistence"], "none");
 
-        let human = command(&home)
-            .args(["index", index_command])
-            .output()
-            .unwrap();
-        assert!(human.status.success());
-        let human = String::from_utf8(human.stdout).unwrap();
-        assert!(human.contains("status=degraded"));
-        assert!(human.contains("degraded: .mg-vault/index.sqlite3:"));
-    }
+    let rebuild = command(&home)
+        .args(["--json", "index", "rebuild"])
+        .output()
+        .unwrap();
+    assert!(!rebuild.status.success());
+    let value: Value = serde_json::from_slice(&rebuild.stderr).unwrap();
+    assert_eq!(value["ok"], false);
+    assert_eq!(value["error"]["code"], "index_storage");
+
+    let human = command(&home).args(["index", "status"]).output().unwrap();
+    assert!(human.status.success());
+    let human = String::from_utf8(human.stdout).unwrap();
+    assert!(human.contains("status=degraded"));
+    assert!(human.contains("degraded: .mg-vault/index.sqlite3:"));
 
     let human = command(&home).args(["search", "needle"]).output().unwrap();
     assert!(human.status.success());
     let human = String::from_utf8(human.stdout).unwrap();
     assert!(human.contains("status=degraded"));
     assert!(human.contains("degraded: .mg-vault/index.sqlite3:"));
+}
+
+#[test]
+fn status_detects_external_source_change_without_publishing_it() {
+    let home = tempfile::tempdir().unwrap();
+    let vault = home.path().join("vault");
+    fs::create_dir(&vault).unwrap();
+    register(&home, &vault);
+    fs::write(vault.join("note.md"), "old value\n").unwrap();
+    assert!(
+        command(&home)
+            .args(["index", "rebuild"])
+            .status()
+            .unwrap()
+            .success()
+    );
+    fs::write(vault.join("note.md"), "new needle\n").unwrap();
+
+    let status = command(&home)
+        .args(["--json", "index", "status"])
+        .output()
+        .unwrap();
+    assert!(status.status.success());
+    let status: Value = serde_json::from_slice(&status.stdout).unwrap();
+    assert_eq!(status["data"]["status"], "stale");
+    assert_eq!(status["data"]["generation"], 1);
+    assert_eq!(status["data"]["freshness"], "source_observed_snapshot");
+    assert_eq!(status["data"]["diagnostics"][0]["path"], "note.md");
+    assert!(status["data"]["observed_at_unix_ms"].is_number());
+
+    let search = command(&home)
+        .args(["--json", "search", "needle"])
+        .output()
+        .unwrap();
+    assert!(search.status.success());
+    let search: Value = serde_json::from_slice(&search.stdout).unwrap();
+    assert_eq!(search["data"]["status"], "degraded");
+    assert_eq!(search["data"]["persistence"], "none");
+    assert_eq!(search["data"]["persistent_freshness"], "stale");
+    assert_eq!(search["data"]["results"][0]["path"], "note.md");
+    assert!(search["data"]["fallback_reason"].is_string());
+}
+
+#[cfg(unix)]
+#[test]
+fn search_and_status_encode_non_utf8_paths_and_escape_filename_controls() {
+    let home = tempfile::tempdir().unwrap();
+    let vault = home.path().join("vault");
+    fs::create_dir(&vault).unwrap();
+    register(&home, &vault);
+    let relative = PathBuf::from(std::ffi::OsString::from_vec(
+        b"line\n\t\x1b-\xff.md".to_vec(),
+    ));
+    let note = vault.join(&relative);
+    fs::write(&note, "# Encoded\nneedle\n").unwrap();
+
+    let rebuild = command(&home)
+        .args(["--json", "index", "rebuild"])
+        .output()
+        .unwrap();
+    assert!(rebuild.status.success());
+    let rebuild: Value = serde_json::from_slice(&rebuild.stdout).unwrap();
+    assert_eq!(rebuild["data"]["status"], "current");
+
+    let search = command(&home)
+        .args(["--json", "search", "needle"])
+        .output()
+        .unwrap();
+    assert!(search.status.success());
+    let search: Value = serde_json::from_slice(&search.stdout).unwrap();
+    let path = &search["data"]["results"][0]["path"];
+    assert_eq!(path["encoding"], "unix_bytes_hex");
+    assert_eq!(path["value"], "6c696e650a091b2dff2e6d64");
+    assert_eq!(path["display"], "line\\x0a\\x09\\x1b-\\xff.md");
+
+    let human_search = command(&home).args(["search", "needle"]).output().unwrap();
+    assert!(human_search.status.success());
+    assert!(!human_search.stdout.contains(&0x1b));
+    let human_search = String::from_utf8(human_search.stdout).unwrap();
+    assert!(human_search.contains("line\\x0a\\x09\\x1b-\\xff.md"));
+
+    fs::write(&note, [0xff, 0xfe]).unwrap();
+    let status = command(&home)
+        .args(["--json", "index", "status"])
+        .output()
+        .unwrap();
+    assert!(status.status.success());
+    let status: Value = serde_json::from_slice(&status.stdout).unwrap();
+    let diagnostic_path = &status["data"]["diagnostics"][0]["path"];
+    assert_eq!(diagnostic_path["encoding"], "unix_bytes_hex");
+    assert_eq!(diagnostic_path["value"], "6c696e650a091b2dff2e6d64");
+
+    let human_status = command(&home).args(["index", "status"]).output().unwrap();
+    assert!(human_status.status.success());
+    assert!(!human_status.stdout.contains(&0x1b));
+    let human_status = String::from_utf8(human_status.stdout).unwrap();
+    assert!(human_status.contains("line\\x0a\\x09\\x1b-\\xff.md"));
 }

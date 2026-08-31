@@ -6,12 +6,15 @@ rust-version.workspace = true
 
 [dependencies]
 clap.workspace = true
+mg-vault-client = { path = "../mg-vault-client" }
 mg-vault-core = { path = "../mg-vault-core" }
 mg-vault-index = { path = "../mg-vault-index" }
 serde.workspace = true
 serde_json.workspace = true
+thiserror.workspace = true
 
 [dev-dependencies]
+mg-vault-service = { path = "../mg-vault-service" }
 tempfile = "3"
 
 [lints]

@@ -1,14 +1,17 @@
 [package]
-name = "mg-vault-index"
+name = "mg-vault-service"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
 
+[[bin]]
+name = "mg-vault-indexd"
+path = "src/main.rs"
+
 [dependencies]
+mg-vault-client = { path = "../mg-vault-client" }
 mg-vault-core = { path = "../mg-vault-core" }
-rusqlite.workspace = true
 rustix.workspace = true
-serde.workspace = true
 serde_json.workspace = true
 thiserror.workspace = true
 
