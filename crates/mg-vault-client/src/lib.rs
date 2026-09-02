@@ -3,11 +3,13 @@
 use std::io::{Read, Write};
 use std::os::unix::net::UnixStream;
 use std::path::Path;
+use std::time::Duration;
 
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 
 pub const PROTOCOL_VERSION: u16 = 1;
 pub const MAX_FRAME_BYTES: usize = 1024 * 1024;
+const IO_TIMEOUT: Duration = Duration::from_secs(5);
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct Request {
@@ -90,6 +92,8 @@ impl Client {
         request_id: impl Into<String>,
     ) -> Result<Self> {
         let mut stream = UnixStream::connect(socket)?;
+        stream.set_read_timeout(Some(IO_TIMEOUT))?;
+        stream.set_write_timeout(Some(IO_TIMEOUT))?;
         let request_id = request_id.into();
         write_frame(
             &mut stream,

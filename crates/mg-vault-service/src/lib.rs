@@ -44,6 +44,17 @@ impl Server {
     /// # Errors
     /// Refuses unsafe runtime directories and existing socket paths.
     pub fn bind(socket_path: &Path, registry_path: &Path) -> Result<Self> {
+        let registry = VaultRegistry::load(registry_path)?;
+        if registry
+            .list()
+            .iter()
+            .any(|vault| socket_path.starts_with(&vault.path))
+        {
+            return Err(ServiceError::UnsafeRuntime {
+                path: socket_path.to_path_buf(),
+                reason: "service endpoint must be outside every vault".to_owned(),
+            });
+        }
         let parent = socket_path
             .parent()
             .ok_or_else(|| ServiceError::UnsafeRuntime {
