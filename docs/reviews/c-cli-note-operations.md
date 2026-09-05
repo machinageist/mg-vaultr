@@ -104,7 +104,7 @@ freshness vocabulary, or §7.2's delta reconcile.
 
 ## Feasibility Check
 
-Source verified against the working tree at `/home/mgeist/geist/vault` (HEAD `dfe33cf`, 2026-08-24, with uncommitted modifications to `mg-vault-cli/src/main.rs`, `mg-vault-index/src/lib.rs`, and docs). The spec is dated 2026-08-23 and pins itself to `bb2b723`, which is eight commits behind.
+Source verified against the working tree (HEAD `dfe33cf`, 2026-08-24, with uncommitted modifications to `mg-vault-cli/src/main.rs`, `mg-vault-index/src/lib.rs`, and docs). The spec is dated 2026-08-23 and pins itself to `bb2b723`, which is eight commits behind.
 
 | Check | Status | Notes |
 |---|---|---|

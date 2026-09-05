@@ -3,6 +3,7 @@ name = "mg-vault-index"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
+license.workspace = true
 
 [dependencies]
 mg-vault-core = { path = "../mg-vault-core" }
