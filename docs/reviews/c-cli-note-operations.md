@@ -1,8 +1,8 @@
 # Scorecard: CLI and Note Operations
 
 **Feature ID:** c-cli-note-operations
-**Spec file:** gauntlet-output/specs/c-cli-note-operations.md
-**Reviewer agent:** Blind verification agent (Spec Gauntlet, mg-vault)
+**Spec file:** docs/specs/c-cli-note-operations.md
+**Reviewer agent:** Blind verification agent
 **Date:** 2026-08-30
 **Spec iteration reviewed:** 2
 

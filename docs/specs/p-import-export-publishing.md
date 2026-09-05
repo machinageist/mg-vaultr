@@ -2,7 +2,7 @@
 
 **Feature ID:** p-import-export-publishing
 **Parent feature:** root
-**Spec author agent:** Spec Gauntlet agent P (import/export/publishing)
+**Spec author agent:** Spec agent P (import/export/publishing)
 **Date:** 2026-08-30
 **Iteration:** 1
 
@@ -751,7 +751,7 @@ Protections, each with a test in §5: everything under `.mg-vault/{import,publis
 - `crates/mg-vault-export/` — `select.rs`, `markdown.rs`, `html.rs` (consumes **F**'s sanitizer only), `pdf.rs` (feature-gated), `assets.rs`, `a11y.rs` (alt/diagram/canvas equivalents), `manifest.rs`, plus the reworked `snapshot.rs`.
 - `crates/mg-vault-publish/` — `allow.rs`, `project.rs`, `stage.rs`, `gate.rs` (G1–G8), `credential.rs`, `receipt.rs`, `transport/{directory,rsync_ssh,git_branch,https}.rs`.
 - Tests: `crates/mg-vault-import/tests/{plan,collision,provenance,ledger,adapters,crash_matrix,confinement}.rs`; `crates/mg-vault-export/tests/{no_mutation,sanitizer,links,a11y,pdf_gate}.rs`; `crates/mg-vault-publish/tests/{allowlist,gates,secrets,credential,offline,transport}.rs`.
-- Fixtures: `gauntlet-output/fixtures/interop/{obsidian,markdown,notion,logseq,publish-secrets}/` plus expected-artifact goldens.
+- Fixtures: `tests/fixtures/interop/{obsidian,markdown,notion,logseq,publish-secrets}/` plus expected-artifact goldens.
 
 **Modified files**
 

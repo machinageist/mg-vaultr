@@ -1,8 +1,8 @@
 # Scorecard: Editor Engine
 
 **Feature ID:** d-editor-engine
-**Spec file:** gauntlet-output/specs/d-editor-engine.md
-**Reviewer agent:** blind verification agent (Spec Gauntlet, mg-vault)
+**Spec file:** docs/specs/d-editor-engine.md
+**Reviewer agent:** blind verification agent
 **Date:** 2026-08-30
 **Spec iteration reviewed:** 2
 
@@ -148,7 +148,7 @@ Source read: `vault/Cargo.toml`, `crates/*/Cargo.toml`, `mg-vault-core/src/{lib,
 | "`docs/ARCHITECTURE.md` explicitly defer[s] editor/TUI/parser/index work" | `ARCHITECTURE.md` now describes `mg-vault-index` as shipped ("owns a disposable SQLite projection ... Complete rebuilds publish a generation atomically") and defers only "watcher/service, IPC client, structural parser/query foundation, app, editor, TUI, and plugin". | Factual error on the index half. Same scoring locus. |
 | "no editor crate exists" | Correct — no `mg-vault-editor` anywhere. | ✓ |
 | "`vault.rs`, `atomic.rs`, `xdg.rs` ... provide confined file authority, fingerprints, XDG paths, and atomic replacement primitives suitable as dependencies" | Correct and verified in detail. | ✓ |
-| "`gauntlet-output/specs/a-foundation-file-authority.md` defines the current accepted file-authority slice" | Correct; file present. | ✓ |
+| "`docs/specs/a-foundation-file-authority.md` defines the current accepted file-authority slice" | Correct; file present. | ✓ |
 | **Absent list** (rope buffer, grapheme cursor, modal grammar, registers/macros, marks/jumps, search/command line, undo tree, recovery WAL, autosave, watcher, merge, external handoff, Tree-sitter, spellcheck, editor docs/fixtures/benchmarks) | All confirmed absent **as editor components**. Note that vault-level `search` and a freshness-typed query surface now ship in `mg-vault-index` + the CLI; §3.4 designs the `KnowledgeQueryProvider` seam as if only a hypothetical B/G provider exists. | Not a false "absent" claim (editor search genuinely does not exist), but the omission is why the seam and the shipped store share no vocabulary. |
 
 **Feasibility verdict:** Feasible with caveats

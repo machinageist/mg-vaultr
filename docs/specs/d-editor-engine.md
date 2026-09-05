@@ -543,7 +543,7 @@ Auto-fail gates directly covered here: no acknowledged source-content loss (ever
 - `Cargo.toml` contains Rust 2024 workspace members `mg-vault-core` and `mg-vault-cli`; no editor crate exists.
 - `crates/mg-vault-core/src/vault.rs`, `atomic.rs`, `xdg.rs`, and related tests provide confined file authority, fingerprints, XDG paths, and atomic replacement primitives suitable as dependencies.
 - `docs/PRODUCT.md` and `docs/ARCHITECTURE.md` explicitly defer editor/TUI/parser/index work.
-- `gauntlet-output/specs/a-foundation-file-authority.md` defines the current accepted file-authority slice.
+- `docs/specs/a-foundation-file-authority.md` defines the current accepted file-authority slice.
 
 **Absent:** rope/piece-table buffer, grapheme cursor model, modal grammar, registers/macros, marks/jumps, search/command line, undo tree, recovery WAL, autosave coordinator, watcher integration, merge engine, external-editor handoff, Tree-sitter, spellcheck/diagnostics, editor documentation, fixtures, and editor benchmarks.
 

@@ -622,7 +622,7 @@ State words are exact: implemented / prototyped / planned / gated / absent.
 - `crates/mg-vault-core/src/confine.rs` — the `VaultDir` descriptor-relative capability (`openat2` on Linux; `openat` + `O_NOFOLLOW` + `(dev, ino)` pinning on macOS) plus the capability gate that blocks mutation when the backend cannot pass its suite.
 - `crates/mg-vault-cli/src/{cli,output/human,output/json}.rs` — split parsing from rendering; centralize the path-rendering and color-policy contract.
 - `crates/mg-vault-core/tests/{transactions,confinement,registry_schema}.rs` and `crates/mg-vault-cli/tests/{contracts,pty}.rs` — the fault, race, schema, and terminal matrices of §5.
-- `gauntlet-output/fixtures/json/*.json` — golden envelope fixtures per command and error code.
+- `tests/fixtures/json/*.json` — golden envelope fixtures per command and error code.
 
 **Modified files**
 

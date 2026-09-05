@@ -671,7 +671,7 @@ Reference: warm local SSD, `git >= 2.38`, reported with hardware/OS metadata; th
 
 ### 6.4 Regulatory alignment
 
-The binding standard here is `gauntlet-output/criteria.md`. Lens 3 (Knowledge Retrieval and Structure), which the template names explicitly:
+The binding standard here is `docs/specs/QUALITY-CRITERIA.md`. Lens 3 (Knowledge Retrieval and Structure), which the template names explicitly:
 
 - **3A Determinism.** M derives nothing that retrieval consumes. Its own classifications derive from git's content-addressed object database plus fresh confined source reads, so the same inputs always produce the same plan (asserted via `plan_hash`). M never mutates a link, a tag, or a property.
 - **3B Ambiguity.** M's ambiguity is conflict, and it never resolves one silently: every `conflict:*` class stops with both sides preserved and requires an explicit per-conflict decision. `--yes` cannot resolve a conflict; no `--strategy ours/theirs` exists. A link ambiguity created by a pull that adds a same-basename note is G's to report; M does not rewrite links, so it cannot introduce one silently through an edit.
@@ -732,7 +732,7 @@ State words are exact.
 - `crates/mg-vault-sync/` with `git/{mod,capability}.rs`, `status.rs`, `checkpoint.rs`, `plan.rs`, `merge.rs`, `conflict.rs`, `syncthing.rs`, `exclude.rs`, `scan.rs`, `backup.rs`, `journal.rs`, `recover.rs`, plus `Cargo.toml` inheriting the workspace lints.
 - `crates/mg-vault-cli/src/commands/sync.rs` and `output/sync_{human,json}.rs`.
 - `crates/mg-vault-sync/tests/{allowlist,exclusion,scan,merge_policy,syncthing,conflict,backup,crash_matrix,offline}.rs`.
-- `gauntlet-output/fixtures/sync/` — two-machine repo fixtures, conflict corpora (overlap, frontmatter, fence, canvas, binary, delete-vs-modify, rename-vs-modify), a secret corpus with a false-positive corpus, Syncthing artifact names including near-misses, and golden JSON envelopes.
+- `tests/fixtures/sync/` — two-machine repo fixtures, conflict corpora (overlap, frontmatter, fence, canvas, binary, delete-vs-modify, rename-vs-modify), a secret corpus with a false-positive corpus, Syncthing artifact names including near-misses, and golden JSON envelopes.
 - A recording `git` shim and a socket-denial harness under `tests/support/`.
 
 **Modified files**

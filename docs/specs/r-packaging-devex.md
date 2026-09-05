@@ -2,7 +2,7 @@
 
 **Feature ID:** r-packaging-devex
 **Parent feature:** root
-**Spec author agent:** Packaging Spec Agent (mg-vault Spec Gauntlet)
+**Spec author agent:** Packaging spec agent
 **Date:** 2026-08-30
 **Iteration:** 1
 
@@ -24,7 +24,7 @@ Three risks make packaging load-bearing rather than cosmetic for this product sp
 2. **The index service (branch **B**) is a long-running daemon with a filesystem watcher over the user's entire vault.** Packaged wrong — a system unit, a broad `ReadWritePaths`, ambient network — it becomes the largest privilege in the product and a standing contradiction of criterion **1A** (indexes are disposable, source is authority). Packaged right, systemd enforces at the kernel level what the code promises: the indexer can *read* vault roots and can *write* only to disposable XDG cache and state.
 3. **The plugin SDK (branch **N**) is a versioned contract shipped to third parties.** A WIT world that drifts from the host is how a sandbox turns into a compatibility guess.
 
-`mg-vault` also ships as a suite with the sibling product `mg-calr`, whose packaging spec (`calendar/gauntlet-output/specs/h-packaging-devex.md`) this one deliberately mirrors: same PKGBUILD discipline, same static-completion rule, same reproducible-tarball and checksum-truth model, same "no privileged operation in any scriptlet" rule, and the same unresolved MIT-versus-Apache-2.0 licence question.
+`mg-vault` also ships as a suite with the sibling product `mg-calr`, whose packaging spec (`mg-calr/docs/specs/h-packaging-devex.md`) this one deliberately mirrors: same PKGBUILD discipline, same static-completion rule, same reproducible-tarball and checksum-truth model, same "no privileged operation in any scriptlet" rule, and the same unresolved MIT-versus-Apache-2.0 licence question.
 
 ### 1.3 Success signal
 

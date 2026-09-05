@@ -1,8 +1,8 @@
 # Scorecard: Markdown and Rich Content
 
 **Feature ID:** f-markdown-rich-content
-**Spec file:** gauntlet-output/specs/f-markdown-rich-content.md
-**Reviewer agent:** Spec Gauntlet verification agent (blind review)
+**Spec file:** docs/specs/f-markdown-rich-content.md
+**Reviewer agent:** Verification agent (blind review)
 **Date:** 2026-08-30
 **Spec iteration reviewed:** 1
 **Graded against commit:** `dfe33cf` (`dfe33cf617870ea7529283eb6ab8a7c222aa9f0f`, 2026-08-24, "feat: add mg-vault interop snapshot export")

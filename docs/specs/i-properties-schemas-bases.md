@@ -2,7 +2,7 @@
 
 **Feature ID:** i-properties-schemas-bases
 **Parent feature:** root
-**Spec author agent:** Spec Gauntlet agent I (properties/schemas/Bases)
+**Spec author agent:** Spec agent I (properties/schemas/Bases)
 **Date:** 2026-08-29
 **Iteration:** 1
 

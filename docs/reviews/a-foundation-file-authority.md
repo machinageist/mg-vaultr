@@ -1,8 +1,8 @@
 # Scorecard: Foundation and Vault Authority
 
 **Feature ID:** a-foundation-file-authority
-**Spec file:** gauntlet-output/specs/a-foundation-file-authority.md
-**Reviewer agent:** Spec Gauntlet verification agent (blind review)
+**Spec file:** docs/specs/a-foundation-file-authority.md
+**Reviewer agent:** Verification agent (blind review)
 **Date:** 2026-08-30
 **Spec iteration reviewed:** 2
 
@@ -131,7 +131,7 @@ does not preclude retrieval. That is the correct handling and is not penalized.
 | Unsafe traversal or symlink escape | **Pass** | Layered validation + canonical containment re-check, verified in `vault.rs`. The residual concurrent-swap window is disclosed by name in §4.6, §7.1, §6.4, and §8-Q2 with a specified fail-closed target gate — a named deferral, not an unstated assumption. |
 | Non-atomic save claiming success | **Pass** | §3.2 create step 6 ("Success is printed only after that directory sync returns"), §3.6's `io` row, §6.3's "Output verbs are earned", §6.4. Verified: `create_atomic` returns only after `sync_parent`, and the CLI prints from the `Ok` arm only. |
 | Recovery overwriting newer source | **Pass** | §3.2 restore step 6 — collision-refusing, "no force flag and no 'newer/older' heuristic"; §5.2 `restore_never_overwrites_newer_source`; target journal recovery "refuses to write any path whose current bytes differ from the recorded precondition". Verified and covered by a passing test. |
-| Silent conflict winner | **Pass — narrowly; see note** | The spec **prohibits** last-writer-wins in three places (§4.4, §5.2, §6.4) and never presents a silent winner as acceptable. But the mechanism in §3.2 cannot enforce it (1E(a)). I judged this an under-specified mechanism rather than a permitted outcome, so it is scored hard (1E and 4B both docked to 2) and raised as Priority 1 item 1 rather than auto-failed. **Flagging explicitly so the orchestrator can override:** if the gauntlet reads "silent conflict winner" as covering a spec whose stated invariant its own design cannot deliver, this becomes an auto-fail. |
+| Silent conflict winner | **Pass — narrowly; see note** | The spec **prohibits** last-writer-wins in three places (§4.4, §5.2, §6.4) and never presents a silent winner as acceptable. But the mechanism in §3.2 cannot enforce it (1E(a)). I judged this an under-specified mechanism rather than a permitted outcome, so it is scored hard (1E and 4B both docked to 2) and raised as Priority 1 item 1 rather than auto-failed. **Flagging explicitly so the orchestrator can override:** if the review process reads "silent conflict winner" as covering a spec whose stated invariant its own design cannot deliver, this becomes an auto-fail. |
 | Index state overriding source / stale index as current | **Pass** | No A operation reads an index (verified); §6.4 assigns freshness truthfulness to B. |
 | Unknown syntax loss | **Pass** | §3.2 edit-span step 3 (verbatim byte copy, no serializer), §7.5's serialization prohibition, §5.1's preservation test. |
 | Capability / data-exfiltration bypass | **Pass** | No plugin host, AI adapter, or network exists (§4.3, §6.1, §7.5); the internal `.mg-vault` boundary is structurally enforced and verified. |

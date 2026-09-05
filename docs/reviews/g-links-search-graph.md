@@ -1,8 +1,8 @@
 # Scorecard: Links, Search, and Graph
 
 **Feature ID:** g-links-search-graph
-**Spec file:** gauntlet-output/specs/g-links-search-graph.md
-**Reviewer agent:** Spec Gauntlet verification agent (blind review)
+**Spec file:** docs/specs/g-links-search-graph.md
+**Reviewer agent:** Verification agent (blind review)
 **Date:** 2026-08-30
 **Spec iteration reviewed:** 1
 **Graded against commit:** `dfe33cf`
@@ -130,7 +130,7 @@ justified delegation, graded on the slice G retains rather than penalized as a d
 Graded against `dfe33cf`. Sources read: `crates/mg-vault-index/src/lib.rs` (1401 lines),
 `crates/mg-vault-index/tests/persistent_store.rs` (948 lines), `crates/mg-vault-core/src/index.rs`,
 `vault.rs`, `interop.rs`, `crates/mg-vault-cli/src/main.rs`, `Cargo.toml`, `Cargo.lock`,
-`libsqlite3-sys-0.38.2/build.rs`, and `gauntlet-output/specs/b-index-service-search.md`.
+`libsqlite3-sys-0.38.2/build.rs`, and `docs/specs/b-index-service-search.md`.
 
 | Check | Status | Notes |
 |---|---|---|

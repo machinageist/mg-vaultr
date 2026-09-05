@@ -1,4 +1,4 @@
-# Spec Gauntlet Manifest
+# Spec Status
 
 | Feature ID | Name | Status | Spec | Scorecard | Score | Iterations |
 |---|---|---|---|---|---|---|

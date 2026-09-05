@@ -1,8 +1,8 @@
 # Scorecard: TUI Workspace
 
 **Feature ID:** e-tui-workspace
-**Spec file:** gauntlet-output/specs/e-tui-workspace.md
-**Reviewer agent:** blind verification agent (Spec Gauntlet)
+**Spec file:** docs/specs/e-tui-workspace.md
+**Reviewer agent:** blind verification agent
 **Date:** 2026-08-30
 **Spec iteration reviewed:** 1
 **Graded against commit:** `dfe33cf` ("feat: add mg-vault interop snapshot export")

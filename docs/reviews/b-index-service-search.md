@@ -1,8 +1,8 @@
 # Scorecard: Index Service and Search Foundation
 
 **Feature ID:** b-index-service-search
-**Spec file:** gauntlet-output/specs/b-index-service-search.md
-**Reviewer agent:** blind verification agent (Spec Gauntlet, mg-vault)
+**Spec file:** docs/specs/b-index-service-search.md
+**Reviewer agent:** blind verification agent
 **Date:** 2026-08-30
 **Spec iteration reviewed:** 1
 

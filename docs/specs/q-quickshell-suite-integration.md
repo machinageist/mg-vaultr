@@ -1,6 +1,6 @@
 # Spec: Quickshell and Suite Integration
 
-**Feature ID:** q-quickshell-suite-integration **Parent feature:** root **Spec author agent:** Gauntlet spec agent (branch Q) **Date:** 2026-08-30 **Iteration:** 1
+**Feature ID:** q-quickshell-suite-integration **Parent feature:** root **Spec author agent:** Spec agent (branch Q) **Date:** 2026-08-30 **Iteration:** 1
 
 > **Status: absent today, and scoped honestly.** Nothing in branch Q exists in the working
 > tree at commit `dfe33cf` (§7.1). This spec describes the **target** state. Where it says
@@ -13,7 +13,7 @@
 > the SQLite index, never reads a vault file, and never reads `mg-calr`'s PostgreSQL database.
 > It spawns short-lived `mg-vault` child processes listed in a frozen manifest, and nothing
 > else. This mirrors `mg-calr`'s own client-interface contract in
-> `calendar/gauntlet-output/specs/i-deferred-branches.md` §4.3, deliberately, so the two
+> `mg-calr/docs/specs/i-deferred-branches.md` §4.3, deliberately, so the two
 > products' desktop integrations are one architecture rather than two.
 >
 > **Naming.** Branch letters (Q) and criteria letters collide with lens numbering. Criteria are
