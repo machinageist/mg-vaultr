@@ -50,4 +50,6 @@ cargo clippy --workspace --all-targets --all-features -- -D warnings
 cargo test --workspace --all-targets --all-features
 ```
 
-No license file is present: the project license choice (MIT versus Apache-2.0) remains unresolved.
+## License
+
+MIT. See `LICENSE`.
