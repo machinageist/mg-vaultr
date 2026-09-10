@@ -227,10 +227,10 @@ CLI subcommands go in `crates/mg-vault-cli/src/commands/{capture,clip,inbox,extr
 
 - `mg-vault-core` gains **no** network code and **no** process-spawn code, ever. It gains only two narrow primitives (§4.3). A `cargo tree` assertion in CI fails the build if `mg-vault-core` acquires a transitive dependency on any HTTP or TLS crate.
 - The socket-opening code exists only under `#[cfg(feature = "clip")]` inside `net/`. A build with `--no-default-features` links no TLS stack at all, and a symbol-level test asserts it.
-- Sanitization policy is **not** duplicated here. `mg-vault-capture` consumes `mg_vault_markdown::sanitize::Policy` and `HTML_ALLOWLIST_VERSION` from **F**; there is exactly one allowlist in the workspace.
+- Sanitization policy is **not** duplicated here. `mg-vault-capture` consumes the shared markdown sanitization policy and version from the markdown layer; there is exactly one allowlist in the workspace.
 - `mg-vault-index` (**B**) is an optional, read-only, dedupe-only dependency. L never writes to the index and never accepts bytes or authorization from it.
 
-**Reconciliation with `specs/f-markdown-rich-content.md`.** F's rule — *source HTML is preserved byte-identically and never rewritten in the file; sanitization is output-side* — governs bytes that are **already** the user's vault source. A fetched page is not vault source; it is foreign input on its way in. L therefore applies F's identical allowlist at the **ingest** boundary, so that what becomes source is already inert. The two rules compose into defense in depth: L guarantees no active construct is ever written, and F guarantees that even if one somehow were, `--html-mode literal` renders it as escaped text. L adds a constraint and contradicts nothing: once L writes the note, F preserves those bytes byte-for-byte forever after, and L never re-sanitizes an existing note.
+Capture sanitization preserves source bytes after the ingest boundary and writes foreign content inert. Existing vault notes are never re-sanitized by L.
 
 ### 4.2 Data model
 

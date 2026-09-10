@@ -17,9 +17,6 @@ once its spec states binding scope; `reviewed` once a blind scorecard exists und
 | B2 | Local IPC health slice | [authored](specs/b2-local-ipc-health-slice.md) | — | health ping only |
 | B3–B4 | Persistent index store | [authored](specs/b3-b4-persistent-index-store-slice.md) | — | yes |
 | C | CLI note operations | [authored](specs/c-cli-note-operations.md) | [reviewed](reviews/c-cli-note-operations.md) | no |
-| D | Editor engine | [authored](specs/d-editor-engine.md) | [reviewed](reviews/d-editor-engine.md) | no |
-| E | TUI workspace | [authored](specs/e-tui-workspace.md) | [reviewed](reviews/e-tui-workspace.md) | no |
-| F | Markdown rich content | [authored](specs/f-markdown-rich-content.md) | [reviewed](reviews/f-markdown-rich-content.md) | no |
 | G | Links, search, graph | [authored](specs/g-links-search-graph.md) | [reviewed](reviews/g-links-search-graph.md) | no |
 | H | Safe note refactoring | [authored](specs/h-safe-note-refactoring.md) | — | no |
 | I | Properties, schemas, bases | [authored](specs/i-properties-schemas-bases.md) | — | no |
@@ -27,14 +24,12 @@ once its spec states binding scope; `reviewed` once a blind scorecard exists und
 | K | Canvas | [authored](specs/k-canvas.md) | — | no |
 | L | Capture, clipping, extraction | [authored](specs/l-capture-clipping-extraction.md) | — | no |
 | M | Git sync and recovery | [authored](specs/m-git-sync-recovery.md) | — | no |
-| N | Plugins and automation | [authored](specs/n-plugins-automation.md) | — | no |
-| O | AI adapters | [authored](specs/o-ai-adapters.md) | — | no |
 | P | Import, export, publishing | [authored](specs/p-import-export-publishing.md) | — | no |
 | Q | Quickshell suite integration | [authored](specs/q-quickshell-suite-integration.md) | — | no |
 | R | Packaging and devex | [authored](specs/r-packaging-devex.md) | — | no |
 
 Quality bar these were written against: [QUALITY-CRITERIA.md](specs/QUALITY-CRITERIA.md).
 
-Sixteen of the twenty-two rows are specified and unbuilt. That is deliberate — the
+Eleven of the seventeen remaining target rows are specified and unbuilt. That is deliberate — the
 specs are target state written ahead of implementation — but it does mean the volume
 of specification here is not a claim about the software.
